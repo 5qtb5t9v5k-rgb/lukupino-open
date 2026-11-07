@@ -1,0 +1,40 @@
+/**
+ * Lukupino — Cloudflare Worker + D1 + KV + R2 + Durable Object (MCP-istunnot).
+ * Arkkitehtuuri: docs/ARCHITECTURE.md · palvelut ja nimet: docs/INFRA.md.
+ *
+ * Tunnisteet (database_id, KV:n id) eivät ole salaisuuksia, mutta ne ovat
+ * asennuskohtaisia. Julkisessa versiossa niitä ei ole: `wrangler deploy` luo
+ * resurssit itse ja kirjoittaa tunnisteet tähän tiedostoon (wrangler ≥ 4.45).
+ *
+ * Salaisuudet asetetaan `npx wrangler secret put <NIMI>`; arvoja ei koskaan tähän.
+ * Nimet ja merkitykset: docs/INFRA.md. Kanta luodaan migraatioilla:
+ *   npx wrangler d1 migrations apply DB --remote
+ */
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "lukupino",
+	"main": "src/index.ts",
+	"compatibility_date": "2025-03-10",
+	"compatibility_flags": ["nodejs_compat"],
+	"migrations": [{ "new_sqlite_classes": ["LukupinoMCP"], "tag": "v1" }],
+	"durable_objects": {
+		"bindings": [{ "class_name": "LukupinoMCP", "name": "MCP_OBJECT" }]
+	},
+	"d1_databases": [
+		{ "binding": "DB", "database_name": "lukupino", "migrations_dir": "migrations" }
+	],
+	"kv_namespaces": [
+		{ "binding": "OAUTH_KV" },
+		// Tiedostojen varapolku, jos R2:ta ei ole (raja 25 Mt/arvo, 1 Gt yhteensä).
+		// src/files.ts lukee molemmista ja kirjoittaa R2:een, kun se on kytketty.
+		{ "binding": "FILES" }
+	],
+	// R2 tiedostoille (10 Gt ilmaiseksi). Valinnainen: R2 vaatii Cloudflareen
+	// maksutavan, vaikka käyttö mahtuisi ilmaistasoon. Jos rivi puuttuu tai on
+	// kommentoitu, tiedostot menevät KV:hen (FILES). Käyttöönotto: INSTALL.md, R2.
+	// "r2_buckets": [{ "binding": "FILES_R2", "bucket_name": "lukupino-files" }],
+	// Käynnistä nyt -nappi tarvitsee aamurutiinin tunnuksen PURKU_ROUTINE ja tokenin
+	// PURKU_TOKEN (salaisuuksia, routines/README.md). Tunnus voi olla myös tässä varsina.
+	"observability": { "enabled": true },
+	"dev": { "port": 8788 }
+}

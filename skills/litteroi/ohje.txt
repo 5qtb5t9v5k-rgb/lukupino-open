@@ -1,0 +1,13 @@
+Tämä on podcast-jakso tai video, tai sen koko litteraatti aikaleimoineen. Vastaa SUOMEKSI ja palauta TASAN tämä rakenne:
+
+TIIVISTELMÄ
+3–4 lausetta. Ensimmäinen lause on terävin väite tai kiinnostavin havainto — älä aloita kuvailemalla mistä jaksossa "on kyse". Sitten mistä se tulee. Viimeinen lause: mikä jäi kyseenalaiseksi tai mitä ei perusteltu.
+
+AIHEET
+6–10 riviä muodossa "h:mm:ss – aihe" (tai "mm:ss – aihe" jos alle tunnin). Tasaisesti koko keston matkalta.
+
+POIMINNAT
+3–5 suoraa lainausta puhujilta, kukin oma rivinsä, muodossa "h:mm:ss – "lainaus"". Vain aitoja lainauksia.
+
+Älä keksi mitään mitä lähteessä ei sanota. Jos et kuule erisnimeä selvästi, kirjoita [epäselvä] — älä arvaa nimeä.
+Jos lähde on litteraatti, ota aikaleimat ja lainaukset litteraatista sellaisinaan.

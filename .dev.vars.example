@@ -1,0 +1,26 @@
+# Paikallinen kehitys: kopioi nimellä .dev.vars (gitignoressa) ja täytä.
+# Tuotannossa samat nimet asetetaan: npx wrangler secret put <NIMI>
+# Merkitykset: docs/INFRA.md. Arvoja ei koskaan repoon.
+
+# --- Pakolliset ---
+# iPhone-pikakomento ja rutiinit (/api/*)
+CAPTURE_TOKEN=dev-capture-token
+# Claude Code (/mcp, staattinen bearer)
+MCP_TOKEN=dev-mcp-token
+# GitHub OAuth App (kirjautuminen selaimeen ja claude.ai-liittimeen)
+GITHUB_CLIENT_ID=dev-client-id
+GITHUB_CLIENT_SECRET=dev-client-secret
+# Istuntoevästeiden allekirjoitus: openssl rand -hex 32
+COOKIE_ENCRYPTION_KEY=dev-cookie-key-vaihda-tuotannossa
+# Ainoa GitHub-tunnus, joka pääsee sisään
+ALLOWED_GITHUB_LOGIN=dev-kayttaja
+
+# --- Valinnaiset (tyhjä = pois päältä) ---
+# YouTube-videoiden kuvaukset
+YOUTUBE_API_KEY=
+# Spotify-varareitti (harvoin tarpeen)
+SPOTIFY_CLIENT_ID=
+SPOTIFY_CLIENT_SECRET=
+# Käynnistä nyt -nappi: aamurutiinin trig_-tunnus ja API-laukaisimen token
+PURKU_ROUTINE=
+PURKU_TOKEN=

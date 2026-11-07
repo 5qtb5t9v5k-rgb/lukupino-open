@@ -1,0 +1,30 @@
+# Tarkistus jokaiselle PR:lle ja mainiin pushille: tyypit, kovakoodatut
+# asennusosoitteet ja (ylläpitäjän yksityisessä repossa) julkaisun vartija.
+name: Tarkistus
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  tarkistus:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci --legacy-peer-deps
+      - name: Tyypit
+        run: npx tsc --noEmit
+      - name: Ei kovakoodattuja asennusosoitteita
+        run: |
+          if git grep -nE "https://[a-z0-9-]+\.[a-z0-9-]+\.workers\.dev" -- ':!*.md'; then
+            echo "Koodissa on asennuksen osoite. Käytä pyynnön osoitetta tai LUKUPINO_URL-muuttujaa." >&2
+            exit 1
+          fi
+      - name: Julkaisun vartija (vain yksityisessä repossa)
+        run: |
+          if [ -f scripts/julkaise.mjs ]; then node scripts/julkaise.mjs --tarkista; else echo "ohitettu"; fi
