@@ -18,7 +18,7 @@ const go=()=>{const cs=getComputedStyle(el),v=k=>cs.getPropertyValue('--k-'+k).t
 const tv={background:bg,mainBkg:soft,primaryColor:soft,primaryBorderColor:line,primaryTextColor:fg,secondaryColor:bg,secondaryBorderColor:line,secondaryTextColor:fg,tertiaryColor:bg,tertiaryBorderColor:line,tertiaryTextColor:fg,lineColor:mut,textColor:fg,titleColor:fg,nodeBorder:line,clusterBkg:bg,edgeLabelBackground:bg,fontSize:'15px'};
 for(let i=0;i<12;i++){tv['cScale'+i]=soft;tv['cScaleLabel'+i]=fg;tv['cScaleInv'+i]=acc;tv['cScalePeer'+i]=line}
 window.mermaid.initialize({startOnLoad:false,securityLevel:'strict',theme:'base',themeVariables:tv,fontFamily:'DM Sans, sans-serif',flowchart:{curve:'basis',useMaxWidth:true},timeline:{disableMulticolor:true}});window.mermaid.run({querySelector:'pre.mermaid'})};
-if(window.mermaid)return go();const sc=document.createElement('script');sc.src='https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js';sc.onload=go;document.head.appendChild(sc)}`;
+if(window.mermaid)return go();const sc=document.createElement('script');sc.src='https://cdn.jsdelivr.net/npm/mermaid@10.9.5/dist/mermaid.min.js';sc.integrity='sha384-enVdc7lTHDGtpROV85t9+VqPC2EyyB0hsRD0MrvQnHUsHmTHIz2D8SPP4EnBkstH';sc.crossOrigin='anonymous';sc.onload=go;document.head.appendChild(sc)}`;
 
 export function researchPage(css: string): string {
 	return `<!doctype html><html lang="fi"><head><meta charset="utf-8">${ICON_LINKS}<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="color-scheme" content="light dark"><title>Tutkimus · Lukupino</title>
@@ -32,8 +32,8 @@ body{font-family:'DM Sans',-apple-system,system-ui,sans-serif}
 .kuva{--k-fg:var(--fg);--k-mut:var(--mut);--k-line:var(--line);--k-bg:var(--card);--k-soft:var(--soft);--k-acc:var(--acc);--k-r:#b8420e;margin:24px 0;padding:14px;border:1px solid var(--k-line);border-radius:12px;background:var(--k-bg);color:var(--k-fg)}
 .kuva pre.mermaid{overflow-x:auto}
 @media(prefers-color-scheme:dark){.kuva{--k-r:#f08a52}}
-.kuva svg{display:block;max-width:100%;height:auto;margin:0 auto}
-.kuva .sv{overflow-x:auto}.kuva .leve svg{min-width:620px}
+.kuva svg,.kuva .sv img{display:block;max-width:100%;height:auto;margin:0 auto}
+.kuva .sv{overflow-x:auto}.kuva .leve svg,.kuva .leve img{min-width:620px;max-width:none}
 .kuva pre.mermaid{margin:0;background:none;border:0;padding:0;text-align:center;font-family:'DM Sans',sans-serif;white-space:pre}
 .kuva figcaption{font-size:13.5px;line-height:1.45;color:var(--k-mut);margin-top:10px}
 .tu{max-width:700px;margin:0 auto;padding:0 18px 160px}
@@ -171,7 +171,7 @@ export function researchSharePage(d: { id: string; title: string; url: string; c
 <style>
 :root{--ink:#1a1a1a;--mut:#5f5a52;--line:#e4dfd5;--paper:#fff;--soft:#f5f2ec;--blue:#0b5fff;--yel:#f2c94c}
 .kuva{--k-fg:var(--ink);--k-mut:var(--mut);--k-line:var(--line);--k-bg:var(--paper);--k-soft:var(--soft);--k-acc:var(--blue);--k-r:#b8420e;margin:22px 0;padding:12px;border:1px solid var(--k-line);border-radius:10px;background:var(--k-bg);color:var(--k-fg);break-inside:avoid;page-break-inside:avoid}
-.kuva svg{display:block;max-width:100%;height:auto;margin:0 auto}
+.kuva svg,.kuva .sv img{display:block;max-width:100%;height:auto;margin:0 auto}
 .kuva pre.mermaid{margin:0;background:none;border:0;padding:0;text-align:center;font-family:'DM Sans',sans-serif;white-space:pre}
 .kuva figcaption{font:13px/1.45 'DM Sans',sans-serif;color:var(--k-mut);margin-top:8px}
 *{box-sizing:border-box}

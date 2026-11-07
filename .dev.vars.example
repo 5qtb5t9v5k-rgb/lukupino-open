@@ -16,6 +16,8 @@ COOKIE_ENCRYPTION_KEY=dev-cookie-key-vaihda-tuotannossa
 ALLOWED_GITHUB_LOGIN=dev-kayttaja
 
 # --- Valinnaiset (tyhjä = pois päältä) ---
+# Rutiinien rajattu token (suositus tasolle 3): ei arvioita, lukutilaa eikä tuontia
+ROUTINE_TOKEN=
 # YouTube-videoiden kuvaukset
 YOUTUBE_API_KEY=
 # Spotify-varareitti (harvoin tarpeen)

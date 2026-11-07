@@ -1,6 +1,6 @@
 # Lukupino — tila
 
-**Päivitetty 7.11.2026.** Lukupino toimii ylläpitäjän tuotantoasennuksessa, ja jaettava versio on julkaistu julkisena repona (`lukupino-open`). Kuivaharjoitus uudella tilillä ja turvallisuusauditointi puuttuvat vielä.
+**Päivitetty 7.11.2026.** Lukupino toimii ylläpitäjän tuotantoasennuksessa, ja jaettava versio on julkaistu julkisena repona (`lukupino-open`). Ensimmäinen turvallisuusauditointi on ajettu ja sen löydökset korjattu; kuivaharjoitus uudella tilillä puuttuu vielä.
 
 Merkinnät: **[mitattu pvm]** = tarkistettu itse tuona päivänä (komento, kysely tai koodi). **[oletus]** = päätelty dokumentista tai commit-viestistä, ei tarkistettu.
 
@@ -21,13 +21,13 @@ Merkinnät: **[mitattu pvm]** = tarkistettu itse tuona päivänä (komento, kyse
 | CI | 🟡 | GitHub Actions ajaa `tsc`:n ja julkaisun tunnistevartijan jokaisessa PR:ssä; ensimmäistä ajoa ei vielä nähty [oletus] |
 | Julkinen repo | ✅ | `5qtb5t9v5k-rgb/lukupino-open`, julkinen, ensimmäinen versio pushattu 7.11.2026 yhtenä committina ilman historiaa [mitattu 7.11.2026] |
 | Testit | ❌ | Ei yksikkö- eikä integraatiotestejä; MCP testataan vain tuotannossa |
-| Turvallisuusauditointi | ❌ | Ei vielä ajettu; ohje `SECURITY.md`:ssä |
+| Turvallisuusauditointi | 🟡 | Ajettu 7.11.2026 (`quick`, vain lähdekoodi): 0 vahvistettua, 6 epäilyä, kaikki korjattu tai lievennetty [mitattu 7.11.2026, `SECURITY.md`]. Korjaukset testattu paikallisesti selaimella ja curlilla [mitattu 7.11.2026] |
 | Podcast-merkki (`/api/merkki`) | ❌ | Vain suunnitelma (`docs/KAYTTO.md`, *Suunnitteilla*) |
 
 ## Seuraavaksi
 
 1. **Kuivaharjoitus:** asenna uudelle Cloudflare- ja GitHub-tilille pelkän `INSTALL.md`:n varassa (agentti tekee, ihminen seuraa). Kirjaa jokainen kohta, jossa jäätiin jumiin, ja korjaa ohje.
-2. **Turvallisuusauditointi** Cloudflaren security-audit-skillillä (`SECURITY.md`) ja löydösten korjaus.
+2. **Toinen auditointi** profiililla `standard` ja epäilyjen tarkistus eristetyssä selain- ja ajoympäristössä (`SECURITY.md`).
 3. **Jaettava pikakomento** iCloud-linkiksi tuontikysymyksillä; linkki `docs/IPHONE.md`:hen.
 4. **Yksityinen haavoittuvuusilmoitus** päälle julkisen repon asetuksista (`SECURITY.md` ohjaa sinne).
 5. **Podcast-merkki**, kun joku haluaa sen ja hänellä on Spotify Premium.

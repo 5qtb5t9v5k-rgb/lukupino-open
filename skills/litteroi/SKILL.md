@@ -54,8 +54,16 @@ joten kaikkea ei kannata litteroida — vain se mitä oikeasti aikoo käyttää.
 litteraatista.** Video tai ääni luetaan vain kerran; tiivistelmä tehdään
 tekstistä, joka on murto-osan hintainen.
 
+**Vain tunnus komentoriville.** Älä koskaan kirjoita tallennuksen osoitetta,
+`media_url`:ia tai puhujien nimiä komentoriville: ne ovat vieraiden
+kirjoittamia, ja komentotulkki laajentaa merkit kuten `$(…)` myös
+lainausmerkkien sisällä. Skriptit hakevat osoitteen itse tunnuksella
+(`GET /api/bookmark/<id>`). Puhujat kirjoitetaan Write-työkalulla tiedostoon
+`/tmp/puhujat.txt` ja annetaan `--puhujat-tiedosto`-valitsimella.
+Auditointi 7.11.2026.
+
 ```bash
-python3 skills/litteroi/koko.py youtube "<video-url>" --tallenna <id>   # ks. Koko litteraatti
+python3 skills/litteroi/koko.py --id <id>          # ks. Koko litteraatti
 bash skills/litteroi/litteroi.sh teksti <id> skills/litteroi/ohje.txt
 ```
 
@@ -63,13 +71,15 @@ Jos `koko.py` ei tuottanut litteraattia (koodi 3 = RECITATION, tai 2),
 tiivistelmä tehdään suoraan lähteestä varareittinä:
 
 ```bash
-skills/litteroi/litteroi.sh youtube "<video-url>"  skills/litteroi/ohje.txt
-skills/litteroi/litteroi.sh audio   "<mp3-url>"    skills/litteroi/ohje.txt
+bash skills/litteroi/litteroi.sh lahde <id> skills/litteroi/ohje.txt
 ```
 
-MP3:n osoite on kirjanmerkin **`media_url`**-kentässä (Worker poimii sen
-RSS-syötteestä). Jos se puuttuu, hae syöte kuten
-`skills/lukupino-rikasta/SKILL.md` vaiheessa 2b.
+Skriptit valitsevat lähteen itse: jos tallennuksella on **`media_url`**,
+se litteroidaan äänenä, muuten YouTube-osoite videona (jakoparametri `is`
+pudotetaan). **Worker ei tallenna `media_url`:ia**; se kirjoittaa vain
+`fetchNote`en "mp3 saatavilla". Podcastille hae jakson MP3 syötteestä kuten
+`skills/lukupino-rikasta/SKILL.md` vaiheessa 2b ja kirjoita se ensin
+`mediaUrl`-kenttään `/api/update`:lla (JSON-runko, ei komentoriviä).
 
 Skripti hoitaa podcastilla latauksen ja Files API -lähetyksen itse.
 YouTubella riittää osoite — videota ei ladata.
@@ -96,14 +106,16 @@ aiheet hyppylinkkeinä, aikaleima avaa lähteen kohdasta) ja korostaa siitä
 lauseita suoraan poimintoihin. Lisätty 5.10.2026.
 
 ```bash
-python3 skills/litteroi/koko.py youtube "<video-url>" --tallenna <id>
-python3 skills/litteroi/koko.py audio   "<media_url>" --puhujat "Juontaja (juontaja), Vieras (vieras)" --tallenna <id>
+python3 skills/litteroi/koko.py --id <id>
+python3 skills/litteroi/koko.py --id <id> --puhujat-tiedosto /tmp/puhujat.txt   # podcast
 ```
+
+`/tmp/puhujat.txt` kirjoitetaan Write-työkalulla, esim. `Juontaja (juontaja), Vieras (vieras)`.
 
 `--tallenna` lähettää tuloksen `POST /api/transcript` -reitille. Litteraatti
 ei mene `note`-kenttään: 2 h jakso on 140 000 merkkiä, ja se on omassa
 taulussaan (`transcripts`), jotta vienti ja listaus pysyvät kevyinä.
-`--puhujat` kannattaa antaa podcastille otsikosta tai kuvauksesta — ilman
+Puhujat kannattaa antaa podcastille otsikosta tai kuvauksesta — ilman
 sitä malli nimeää puhujat vain jos nimet sanotaan ääneen.
 
 **Kulu (21.10.2026).** YouTube luetaan asetuksella `fps: 0.01`: kuvaa ei

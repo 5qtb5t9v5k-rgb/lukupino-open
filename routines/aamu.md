@@ -64,13 +64,15 @@ Jonojen B ja D järjestys: arvio 3, arvio 0 (perehdy), arvio 2, sitten
 uusimmat. Jonon C ehdossa verrataan isäntänimeä, ei merkkijonoa:
 `spacex.com` sisältää merkkijonon `x.com` mutta ei kuulu jonoon.
 
-**Jono B, järjestys:** ensin koko litteraatti (`koko.py --tallenna <id>`),
-sitten tiivistelmä siitä (`litteroi.sh teksti <id> skills/litteroi/ohje.txt`),
+**Jono B, järjestys:** ensin koko litteraatti (`python3 skills/litteroi/koko.py --id <id>`),
+sitten tiivistelmä siitä (`bash skills/litteroi/litteroi.sh teksti <id> skills/litteroi/ohje.txt`),
 jotta video tai ääni luetaan vain kerran. Jos koko litteraatti ei onnistunut
 (koodi 3 = RECITATION tai 2), tee tiivistelmä suoraan lähteestä
-(`litteroi.sh youtube|audio`). Pudota YouTube-osoitteesta `&is=`- tai
-`?is=`-jakoparametri. Jos `LUKUPINO_GEMINI_KEY` puuttuu, sano se
-vastauksessa äläkä kirjoita mitään tilalle.
+(`bash skills/litteroi/litteroi.sh lahde <id> skills/litteroi/ohje.txt`).
+**Komentoriville vain tunnus**, ei koskaan osoitetta, `media_url`:ia eikä
+puhujien nimiä: skriptit hakevat lähteen itse. Podcastille kirjoita jakson MP3
+ensin `mediaUrl`-kenttään `/api/update`:lla. Jos `LUKUPINO_GEMINI_KEY` puuttuu,
+sano se vastauksessa äläkä kirjoita mitään tilalle.
 
 ## Tallennus
 

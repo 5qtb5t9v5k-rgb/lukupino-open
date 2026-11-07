@@ -33,6 +33,8 @@ function randomState(): string {
 /** GET /login → GitHub */
 ui.get("/login", (c) => {
 	const state = randomState();
+	// Paluu kirjautumisen jälkeen: vain sallitut kohteet, ei avointa uudelleenohjausta.
+	const paluu = c.req.query("paluu") === "asennus" ? "asennus" : "";
 	const url = getUpstreamAuthorizeUrl({
 		upstream_url: "https://github.com/login/oauth/authorize",
 		client_id: c.env.GITHUB_CLIENT_ID,
@@ -40,10 +42,10 @@ ui.get("/login", (c) => {
 		redirect_uri: new URL("/callback/ui", c.req.url).href,
 		state,
 	});
-	return new Response(null, {
-		status: 302,
-		headers: { Location: url, "Set-Cookie": `${STATE_COOKIE}=${state}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=600` },
-	});
+	const headers = new Headers({ Location: url });
+	headers.append("Set-Cookie", `${STATE_COOKIE}=${state}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=600`);
+	if (paluu) headers.append("Set-Cookie", `lp_paluu=${paluu}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=600`);
+	return new Response(null, { status: 302, headers });
 });
 
 /** GET /callback/ui ← GitHub. Alipolku rekisteröidystä /callback-osoitteesta, jonka GitHub sallii. */
@@ -61,9 +63,11 @@ ui.get("/callback/ui", async (c) => {
 	const user = await new Octokit({ auth: token }).rest.users.getAuthenticated();
 	const login = user.data.login;
 	if (login !== c.env.ALLOWED_GITHUB_LOGIN) return c.text(`Ei pääsyä: ${login}`, 403);
-	const headers = new Headers({ Location: "/" });
+	const paluu = /(?:^|;\s*)lp_paluu=asennus(?:;|$)/.test(c.req.header("cookie") ?? "") ? "/asennus" : "/";
+	const headers = new Headers({ Location: paluu });
 	headers.append("Set-Cookie", await makeSessionCookie(c.env.COOKIE_ENCRYPTION_KEY, login));
 	headers.append("Set-Cookie", `${STATE_COOKIE}=; Path=/; Max-Age=0`);
+	headers.append("Set-Cookie", `lp_paluu=; Path=/; Max-Age=0`);
 	return new Response(null, { status: 302, headers });
 });
 
@@ -147,6 +151,22 @@ ui.use("/kirja/*", async (c, next) => {
 });
 ui.get("/kirja/:id", (c) => c.html(BOOK_PAGE));
 // Tutkimus: rutiinin sapluunalla kirjoittama selvitys. Ks. research.ts ja tutkimus.ts.
+// Tutkimuksen sisältö on mallin kirjoittamaa, ja malli on lukenut vieraita
+// sivuja. CSP rajaa, mistä sivu saa ladata skriptejä ja minne se saa ottaa
+// yhteyttä: vaikka jokin pääsisi läpi, se ei voi hakea ulkoista koodia eikä
+// lähettää dataa muualle fetchillä tai kuvalla (auditointi 7.11.2026).
+const TUTKIMUS_CSP = [
+	"default-src 'self'",
+	"script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
+	"style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+	"font-src 'self' https://fonts.gstatic.com",
+	"img-src 'self' data:",
+	"connect-src 'self'",
+	"object-src 'none'",
+	"base-uri 'none'",
+	"form-action 'self'",
+	"frame-ancestors 'none'",
+].join("; ");
 ui.use("/tutkimus/*", async (c, next) => {
 	const login = await readSession(c.req.raw, c.env.COOKIE_ENCRYPTION_KEY);
 	if (!login) return c.html(LOGIN_PAGE);
@@ -158,9 +178,9 @@ ui.get("/tutkimus/:id/jaa", async (c) => {
 	const r = b ? await getResearch(c.env.DB, id) : null;
 	if (!b || !r?.text) return c.text("Tutkimusta ei ole", 404);
 	// Jaettava versio: omistajan omat yhteydet pois (stripPersonal, research.ts).
-	return c.html(researchSharePage({ id, title: b.title || b.url, url: b.url, created_at: r.created_at, html: renderMarkdown(stripPersonal(r.text)) }));
+	return c.html(researchSharePage({ id, title: b.title || b.url, url: b.url, created_at: r.created_at, html: renderMarkdown(stripPersonal(r.text), { vainVaalea: true }) }), 200, { "Content-Security-Policy": TUTKIMUS_CSP });
 });
-ui.get("/tutkimus/:id", (c) => c.html(RESEARCH_PAGE));
+ui.get("/tutkimus/:id", (c) => c.html(RESEARCH_PAGE, 200, { "Content-Security-Policy": TUTKIMUS_CSP }));
 ui.get("/ui/research/:id", async (c) => {
 	const id = c.req.param("id");
 	const b = await new Db(c.env.DB).get(id);

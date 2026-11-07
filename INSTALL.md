@@ -93,7 +93,7 @@ Create a temp file **outside the repo** so you can verify later without printing
 
 ```bash
 umask 077; F="$HOME/.lukupino-asennus.env"; : > "$F"
-for N in CAPTURE_TOKEN MCP_TOKEN COOKIE_ENCRYPTION_KEY; do
+for N in CAPTURE_TOKEN MCP_TOKEN COOKIE_ENCRYPTION_KEY ROUTINE_TOKEN; do
   V=$(openssl rand -hex 32); printf '%s=%s\n' "$N" "$V" >> "$F"
   printf '%s' "$V" | npx wrangler secret put "$N" >/dev/null
 done
@@ -101,7 +101,7 @@ printf '%s' "<GH_LOGIN>" | npx wrangler secret put ALLOWED_GITHUB_LOGIN >/dev/nu
 ```
 
 - **Check first:** if `/asennus.json` already shows a name as `true`, do not overwrite it (it would break the user's existing shortcut and connector) unless the user asks for rotation.
-- **Verify:** `curl -s $URL/asennus.json` → `pakolliset` shows the four names `true`.
+- **Verify:** `curl -s $URL/asennus.json` → `pakolliset` shows the four required names `true`. `ROUTINE_TOKEN` (optional, but always create it) is the routines' scoped token: the server refuses owner-only fields and imports for it.
 
 ## S7 — GitHub OAuth App (HUMAN)
 
@@ -126,7 +126,7 @@ curl -s -H "Authorization: Bearer $CAPTURE_TOKEN" "$URL/asennus.json"
 
 ## S9 — First login (HUMAN)
 
-Ask the user to open `$URL/asennus` **on their phone in Safari**, tap *Kirjaudu GitHubilla*, approve. After login the page shows the green badge and, blurred, the tokens they will need next.
+Ask the user to open `$URL/asennus` **on their phone in Safari**, tap *Kirjaudu GitHubilla*, approve. After login the page shows the green badge and, blurred, the tokens they will need next. Token values are shown only within 15 minutes of logging in; later the page offers *Kirjaudu uudelleen nähdäksesi tokenit*.
 
 - **Verify:** user confirms the badge *Kaikki pakollinen kunnossa*. If they see `Ei pääsyä: <name>`, `ALLOWED_GITHUB_LOGIN` does not match their GitHub username exactly (case matters).
 
@@ -176,7 +176,7 @@ Transcripts use Google Gemini. aistudio.google.com → *Get API key* → create 
 
 ## S15 — Routines (tier 3, HUMAN, guided)
 
-Follow [routines/README.md](routines/README.md): one environment with `LUKUPINO_URL`, `LUKUPINO_CAPTURE_TOKEN`, `LUKUPINO_GEMINI_KEY`; two routines (morning, Sunday quiz) whose prompts are the short starters in that file. Then *Run now* on the morning routine.
+Follow [routines/README.md](routines/README.md): one environment with `LUKUPINO_URL`, `LUKUPINO_CAPTURE_TOKEN` (= the Worker's **`ROUTINE_TOKEN`**, never `CAPTURE_TOKEN`), `LUKUPINO_GEMINI_KEY`; two routines (morning, Sunday quiz) whose prompts are the short starters in that file. Then *Run now* on the morning routine.
 
 - **Verify:** the run's answer reports queue sizes A–F and contains no **HUOMIO OMISTAJALLE**.
 - Optional *Käynnistä nyt* button: `PURKU_ROUTINE` + `PURKU_TOKEN` (same file).
@@ -202,6 +202,8 @@ Follow [routines/README.md](routines/README.md): one environment with `LUKUPINO_
 | Shortcut shows `✓` but nothing saved | Custom notification text instead of the server's `message` | docs/IPHONE.md, *Miksi ilmoitus luetaan palvelimelta* |
 | `Verkkoyhteys katkesi` in the shortcut | Two *Get Contents of URL* actions chained, or a POST with an empty body | docs/IPHONE.md, troubleshooting |
 | Routine says `LUKUPINO_URL puuttuu` | Environment variables missing | routines/README.md, step 3 |
+| Routine gets `403 … omistajan kenttiä` | Working as designed: the routine tried to write `rating`, `progress` or `recall` with `ROUTINE_TOKEN` | Check what made it try (injected page content?); the skills never write these |
+| `/asennus` shows no tokens, only *Kirjaudu uudelleen* | Session older than 15 minutes | Log in again from that button |
 | Connector connects but Claude has no Lukupino tools | Approved with a GitHub account other than `ALLOWED_GITHUB_LOGIN` | Remove connector, log out of GitHub, re-add (docs/MCP.md) |
 | Claude Code: MCP 401 | `LUKUPINO_MCP_TOKEN` missing or wrong in the user's environment | Re-copy from `/asennus` (64 chars) |
 | User asks something you can't find in the docs | Not documented | Say so, don't guess; suggest where to look; maintainers add it to docs/UKK.md |

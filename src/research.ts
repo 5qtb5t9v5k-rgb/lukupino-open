@@ -117,17 +117,44 @@ export function sanitizeSvg(raw: string): string | null {
 	return s;
 }
 
-function figure(kind: string, caption: string, body: string): string {
+// SVG näytetään kuvana (<img src="data:image/svg+xml…">), ei sivuun upotettuna:
+// kuvana näytetty SVG ei voi ajaa skriptiä, käsitellä tapahtumia eikä ladata
+// mitään, vaikka siivous päästäisi jotain läpi (auditointi 7.11.2026). Kuvan
+// sisällä sivun CSS-muuttujat eivät toimi, joten --k-*-värit korvataan tässä
+// paletin arvoilla: vaalea ja tumma versio <picture>-elementissä, tulosteeseen
+// vain vaalea. Arvot = ui.ts:n CSS (--fg, --mut, --line, --card, --soft, --acc).
+const PALETTI: Record<"vaalea" | "tumma", Record<string, string>> = {
+	vaalea: { fg: "#1a1a1a", mut: "#6b6b6b", line: "#e6e2da", bg: "#ffffff", soft: "#f1eee7", acc: "#0b5fff", r: "#b8420e" },
+	tumma: { fg: "#ececec", mut: "#9a9a9a", line: "#2a2a2a", bg: "#181818", soft: "#1e1e1e", acc: "#6ea0ff", r: "#f08a52" },
+};
+
+function svgKuvaksi(svg: string, p: Record<string, string>): string {
+	let s = svg.replace(/var\(\s*--k-([a-z]+)\s*(?:,[^)]*)?\)/gi, (m, k: string) => p[k.toLowerCase()] ?? m).replace(/currentColor/g, p.fg);
+	// Itsenäinen SVG-dokumentti vaatii nimiavaruudet (inline-SVG ei).
+	if (!/^<svg[^>]*\sxmlns\s*=/i.test(s)) s = s.replace(/^<svg/i, '<svg xmlns="http://www.w3.org/2000/svg"');
+	if (/xlink:/i.test(s) && !/^<svg[^>]*\sxmlns:xlink\s*=/i.test(s)) s = s.replace(/^<svg/i, '<svg xmlns:xlink="http://www.w3.org/1999/xlink"');
+	s = s.replace(/&nbsp;/g, "&#160;");
+	const b = new TextEncoder().encode(s);
+	let bin = "";
+	for (let i = 0; i < b.length; i += 0x8000) bin += String.fromCharCode(...b.subarray(i, i + 0x8000));
+	return "data:image/svg+xml;base64," + btoa(bin);
+}
+
+export type RenderOptions = { /** Tuloste ja jaettava PDF: vain vaalea paletti. */ vainVaalea?: boolean };
+
+function figure(kind: string, caption: string, body: string, opts: RenderOptions = {}): string {
 	const cap = caption ? `<figcaption>${inline(caption)}</figcaption>` : "";
 	if (kind === "mermaid") return `<figure class="kuva"><pre class="mermaid">${esc(body)}</pre>${cap}</figure>`;
 	const svg = sanitizeSvg(body);
 	if (!svg) return "";
 	// Leveä kaavio (viewBox yli 600) vierii mobiilissa sivuttain, ettei teksti kutistu lukukelvottomaksi.
 	const w = Number(/viewBox\s*=\s*["'][\d.\s-]+?\s([\d.]+)\s+[\d.]+["']/i.exec(svg)?.[1] ?? 0);
-	return `<figure class="kuva"><div class="sv${w > 600 ? " leve" : ""}">${svg}</div>${cap}</figure>`;
+	const alt = esc(caption || "Kuva");
+	const tumma = opts.vainVaalea ? "" : `<source media="(prefers-color-scheme: dark)" srcset="${svgKuvaksi(svg, PALETTI.tumma)}">`;
+	return `<figure class="kuva"><div class="sv${w > 600 ? " leve" : ""}"><picture>${tumma}<img src="${svgKuvaksi(svg, PALETTI.vaalea)}" alt="${alt}" loading="lazy"></picture></div>${cap}</figure>`;
 }
 
-export function renderMarkdown(md: string): string {
+export function renderMarkdown(md: string, opts: RenderOptions = {}): string {
 	const out: string[] = [];
 	const lines = md.replace(/\r\n?/g, "\n").split("\n");
 	let para: string[] = [];
@@ -156,7 +183,7 @@ export function renderMarkdown(md: string): string {
 		const t = line.trim();
 		if (fence) {
 			if (/^```\s*$/.test(t)) {
-				out.push(figure(fence.kind, fence.caption, fence.body.join("\n")));
+				out.push(figure(fence.kind, fence.caption, fence.body.join("\n"), opts));
 				fence = null;
 			} else fence.body.push(line);
 			continue;

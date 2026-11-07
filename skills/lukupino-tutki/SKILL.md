@@ -134,8 +134,11 @@ flowchart TD
   toissijainen teksti ja viivat, `var(--k-line)` reunat ja ruudukko,
   `var(--k-bg)` laatikon tausta, `var(--k-soft)` pehmeä täyttö, `var(--k-acc)`
   korostus ja `var(--k-r)` vastakohta tai varoitus. Näin sama kuva toimii
-  vaaleassa, tummassa ja PDF:ssä. Fontit: `'DM Sans',sans-serif` ja
-  `ui-monospace,Menlo,monospace`. Leveys (viewBox) mieluiten ≤ 600, sillä
+  vaaleassa, tummassa ja PDF:ssä: sivu näyttää SVG:n kuvana ja korvaa
+  muuttujat paletin väreillä (vaalea ja tumma versio). Fontit:
+  `'DM Sans',sans-serif` ja `ui-monospace,Menlo,monospace`; kuvana näytetyssä
+  SVG:ssä sivun verkkofontit eivät ole käytössä, joten loppuun aina yleinen
+  perhe (`sans-serif`, `monospace`). Leveys (viewBox) mieluiten ≤ 600, sillä
   leveämpi vierii puhelimessa sivuttain. Enintään 80 000 merkkiä.
 - Palvelin siivoaa SVG:stä skriptit, `style`-, `image`-, `use`- ja
   `foreignObject`-elementit, `on*`-attribuutit ja ulkoiset linkit, joten

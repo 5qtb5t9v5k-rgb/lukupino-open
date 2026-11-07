@@ -15,7 +15,8 @@
 
 import { Hono, type Context } from "hono";
 import { ICON_LINKS } from "./icon";
-import { readSession } from "./session";
+import { readSession, sessionAge } from "./session";
+import { tokenRooli } from "./api";
 import { storageBackend } from "./files";
 
 export const asennus = new Hono<{ Bindings: Env }>();
@@ -51,7 +52,10 @@ const VALINNAISET: Array<{ nimi: Avain[]; mihin: string }> = [
 	{ nimi: ["YOUTUBE_API_KEY"], mihin: "YouTube-videoiden kuvaukset" },
 	{ nimi: ["SPOTIFY_CLIENT_ID", "SPOTIFY_CLIENT_SECRET"], mihin: "Spotify-varareitti (harvoin tarpeen)" },
 	{ nimi: ["PURKU_ROUTINE", "PURKU_TOKEN"], mihin: "Käynnistä nyt -nappi (routines/README.md)" },
+	{ nimi: ["ROUTINE_TOKEN"], mihin: "Rutiinien rajattu token: ei arvioita, lukutilaa eikä tuontia (suositus tasolle 3)" },
 ];
+/** Tokenit näytetään vain näin tuoreessa istunnossa (sekuntia kirjautumisesta). */
+const TUORE_S = 15 * 60;
 /** Tokenien ja avainten vähimmäispituus, jonka alittamisesta varoitetaan. `openssl rand -hex 32` = 64 merkkiä. */
 const MIN_PITUUS = 32;
 
@@ -70,7 +74,7 @@ function tasaVertailu(a: string, b: string): boolean {
 async function oikeudet(c: Context<{ Bindings: Env }>): Promise<"istunto" | "token" | null> {
 	if (c.env.COOKIE_ENCRYPTION_KEY && (await readSession(c.req.raw, c.env.COOKIE_ENCRYPTION_KEY))) return "istunto";
 	const m = /^Bearer\s+(.+)$/i.exec(c.req.header("authorization") ?? "");
-	if (m && c.env.CAPTURE_TOKEN && tasaVertailu(m[1].trim(), c.env.CAPTURE_TOKEN)) return "token";
+	if (m && tokenRooli(c.env, m[1].trim())) return "token";
 	return null;
 }
 
@@ -107,7 +111,7 @@ async function tila(env: Env, origin: string, laaja: boolean) {
 			tallennuksia = null;
 		}
 	}
-	const lyhyet = (["CAPTURE_TOKEN", "MCP_TOKEN", "COOKIE_ENCRYPTION_KEY"] as Avain[]).filter((n) => {
+	const lyhyet = (["CAPTURE_TOKEN", "MCP_TOKEN", "COOKIE_ENCRYPTION_KEY", "ROUTINE_TOKEN"] as Avain[]).filter((n) => {
 		const v = (env as unknown as Record<string, unknown>)[n];
 		return typeof v === "string" && v.length > 0 && v.length < MIN_PITUUS;
 	});
@@ -141,8 +145,12 @@ asennus.get("/asennus", async (c) => {
 	const t = await tila(c.env, origin, kuka !== null);
 	c.header("Cache-Control", "no-store");
 	c.header("Referrer-Policy", "no-referrer");
-	const istunto = kuka === "istunto";
-	return c.html(sivu(t as Tila, origin, istunto ? c.env.CAPTURE_TOKEN : null, istunto ? c.env.MCP_TOKEN : null));
+	// Tokenit vain tuoreessa istunnossa: jos sivulle joskus pääsisi vieras skripti,
+	// se ei saa niitä vanhalla istunnolla (auditointi 7.11.2026).
+	const ika = kuka === "istunto" ? await sessionAge(c.req.raw, c.env.COOKIE_ENCRYPTION_KEY) : null;
+	const tuore = ika !== null && ika <= TUORE_S;
+	const tokenit = tuore ? { capture: c.env.CAPTURE_TOKEN, mcp: c.env.MCP_TOKEN, rutiini: c.env.ROUTINE_TOKEN || null } : null;
+	return c.html(sivu(t as Tila, origin, tokenit, kuka === "istunto"));
 });
 
 type Tila = Awaited<ReturnType<typeof tila>> & {
@@ -157,7 +165,14 @@ const ok = (b: boolean) => (b ? `<span class="m ok">✓</span>` : `<span class="
 const kopio = (arvo: string, nakyva = true) =>
 	`<div class="cp"><code${nakyva ? "" : ' class="piilo"'}>${esc(arvo)}</code><button type="button" data-k="${esc(arvo)}">Kopioi</button></div>`;
 
-function sivu(t: Tila, origin: string, token: string | null, mcpToken: string | null): string {
+type Tokenit = { capture: string; mcp: string; rutiini: string | null } | null;
+
+function sivu(t: Tila, origin: string, tokenit: Tokenit, istunto: boolean): string {
+	const token = tokenit?.capture ?? null;
+	const mcpToken = tokenit?.mcp ?? null;
+	const vanha = istunto && !tokenit
+		? `<p class="warn">Tokenit näytetään vain 15 minuuttia kirjautumisen jälkeen.</p><a class="btn" href="/login?paluu=asennus">Kirjaudu uudelleen nähdäksesi tokenit</a>`
+		: "";
 	const kaikkiOk = t.valmisKirjautumiseen && (!t.kanta || t.kanta.puuttuvatMigraatiot.length === 0);
 	const pakolliset = PAKOLLISET.map(
 		(p) => `<li>${ok(t.pakolliset[p.nimi])}<div><b>${p.nimi}</b><span>${esc(p.mihin)}</span>${t.pakolliset[p.nimi] ? "" : `<code class="cmd">npx wrangler secret put ${p.nimi}</code>`}</div></li>`,
@@ -185,7 +200,7 @@ function sivu(t: Tila, origin: string, token: string | null, mcpToken: string | 
 <section><h2>iPhone-pikakomento</h2>
 <p>Pikakomento kysyy tuodessa kaksi asiaa. Kopioi ne tästä.</p>
 <h3>Osoite</h3>${kopio(origin)}
-${token ? `<h3>Token (CAPTURE_TOKEN)</h3>${kopio(token, false)}<p class="mut">Token antaa pääsyn koko lukupinoosi. Älä jaa pikakomentoa eteenpäin tokenin kanssa.</p>` : ""}
+${token ? `<h3>Token (CAPTURE_TOKEN)</h3>${kopio(token, false)}<p class="mut">Token antaa pääsyn koko lukupinoosi. Älä jaa pikakomentoa eteenpäin tokenin kanssa.</p>` : vanha}
 <p class="mut">Rakennusohje ja vianetsintä: docs/IPHONE.md.</p></section>
 <section><h2>Claude</h2>
 <h3>claude.ai ja Claude-sovellus: mukautettu liitin</h3>${kopio(`${origin}/mcp`)}
@@ -194,7 +209,13 @@ ${token ? `<h3>Token (CAPTURE_TOKEN)</h3>${kopio(token, false)}<p class="mut">To
 <p class="mut">Ilman tokenia: jätä --header pois ja aja Claude Codessa /mcp → lukupino → Authenticate. Ohje: docs/MCP.md.</p>
 <h3>Claude Code: .mcp.json</h3>${kopio(`{"mcpServers":{"lukupino":{"type":"http","url":"${origin}/mcp","headers":{"Authorization":"Bearer \${LUKUPINO_MCP_TOKEN}"}}}}`)}
 ${mcpToken ? `<h3>LUKUPINO_MCP_TOKEN (Workerin MCP_TOKEN)</h3>${kopio(mcpToken, false)}<p class="mut">Aseta ympäristömuuttujaksi koneelle, jolla Claude Code ajaa.</p>` : ""}
-<h3>Rutiinien ympäristömuuttujat</h3>${kopio(`LUKUPINO_URL=${origin}`)}${token ? kopio(`LUKUPINO_CAPTURE_TOKEN=${token}`, false) : ""}
+<h3>Rutiinien ympäristömuuttujat</h3>${kopio(`LUKUPINO_URL=${origin}`)}${
+				tokenit?.rutiini
+					? kopio(`LUKUPINO_CAPTURE_TOKEN=${tokenit.rutiini}`, false) + `<p class="mut">Arvo on rajattu ROUTINE_TOKEN: rutiini ei voi muuttaa arvioita, lukutilaa eikä omin sanoin -tekstejä.</p>`
+					: token
+						? `<p class="warn">ROUTINE_TOKEN puuttuu. Luo se, niin rutiini ei voi muuttaa arvioitasi, vaikka luettu sivu yrittäisi ohjata sitä: <code>openssl rand -hex 32 | npx wrangler secret put ROUTINE_TOKEN</code>. Siihen asti rutiini käyttää CAPTURE_TOKENia:</p>${kopio(`LUKUPINO_CAPTURE_TOKEN=${token}`, false)}`
+						: vanha
+			}
 <p class="mut">Ohje: routines/README.md.</p></section>`;
 
 	return `<!doctype html><html lang="fi"><head><meta charset="utf-8">${ICON_LINKS}<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="color-scheme" content="light dark"><meta name="robots" content="noindex"><title>Asennus · Lukupino</title>

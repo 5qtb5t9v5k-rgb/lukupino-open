@@ -121,8 +121,9 @@ function parse(text){const out=[];for(const raw of text.split(NL)){const l=raw.t
 // Lähde: YouTube-videon tunnus tai Spotify-jakson tunnus.
 function source(){if(!B)return null;try{const u=new URL(B.url);const h=u.hostname.replace('www.','').replace('m.','');
  let v='';if(h==='youtu.be')v=u.pathname.slice(1);else if(h==='youtube.com'){v=u.pathname.indexOf('/shorts/')===0?u.pathname.split('/')[2]:u.searchParams.get('v')}
- if(v)return {kind:'yt',id:v};
- if(h==='open.spotify.com'&&u.pathname.indexOf('/episode/')===0)return {kind:'sp',id:u.pathname.split('/')[2]}}catch(e){}return null}
+ // Tunnus hyväksytään vain tunnetussa muodossa: se päätyy linkkeihin ja upotukseen (auditointi 7.11.2026).
+ if(v)return /^[A-Za-z0-9_-]{11}$/.test(v)?{kind:'yt',id:v}:null;
+ if(h==='open.spotify.com'&&u.pathname.indexOf('/episode/')===0){const e=u.pathname.split('/')[2];return /^[A-Za-z0-9]{10,40}$/.test(e)?{kind:'sp',id:e}:null}}catch(e){}return null}
 function srcLink(sec){const s=source();if(!s||sec<0)return '';
  return s.kind==='yt'?'https://www.youtube.com/watch?v='+s.id+'&t='+sec+'s':'https://open.spotify.com/episode/'+s.id+'?t='+sec}
 function chapters(note){const out=[];let on=false;for(const raw of String(note||'').split(NL)){const l=raw.trim();const low=l.toLowerCase();
@@ -136,7 +137,7 @@ function rich(t){const L=t.toLowerCase();const f=new Uint8Array(t.length);
   h+=v===0?x:v===1?'<span class="hl">'+x+'</span>':v===2?'<mark>'+x+'</mark>':'<mark class="hl">'+x+'</mark>';s=i}}return h}
 function para(p,i){if(p.ad)return '<p class="p ad">'+(p.ts?esc(p.ts)+' · ':'')+'mainoskatko</p>';
  const href=srcLink(p.s);
- const ts=p.ts?(href?'<a class="ts" href="'+href+'" data-s="'+p.s+'" target="_blank" rel="noopener">'+esc(p.ts)+'</a>':'<span class="ts">'+esc(p.ts)+'</span>'):'';
+ const ts=p.ts?(href?'<a class="ts" href="'+esc(href)+'" data-s="'+p.s+'" target="_blank" rel="noopener">'+esc(p.ts)+'</a>':'<span class="ts">'+esc(p.ts)+'</span>'):'';
  return '<p class="p'+(i===nowI?' now':'')+'" id="p'+i+'" data-i="'+i+'">'+(ts||p.who?'<span class="h">'+ts+(p.who?'<span class="who">'+esc(p.who)+'</span>':'')+'</span>':'')+'<span class="tx">'+rich(p.t)+'</span></p>'}
 function render(){$('#tx').innerHTML=P.map(para).join('');marks=[...document.querySelectorAll('#tx mark')];cur=-1;
  $('#n').textContent=sq.length>=2?(marks.length?'0/'+marks.length:'0'):''}

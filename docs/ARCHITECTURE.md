@@ -74,7 +74,8 @@ tiivistelmä puuttuu, ei statuksesta** (ks. `skills/lukupino-rikasta`, vaihe 1).
 | Kuka | Mihin | Miten |
 |---|---|---|
 | Sinä selaimessa | `/`, `/ui/*`, `/file/*`, kaikki sivut | GitHub OAuth → HMAC-allekirjoitettu eväste 30 pv (`session.ts`). Vain `ALLOWED_GITHUB_LOGIN` |
-| Pikakomento, rutiinit | `/api/*` | `Authorization: Bearer <CAPTURE_TOKEN>` |
+| Pikakomento | `/api/*` | `Authorization: Bearer <CAPTURE_TOKEN>` (omistaja) |
+| Rutiinit | `/api/*` | `Authorization: Bearer <ROUTINE_TOKEN>`: lukea ja rikastaa, mutta ei arvioita, lukutilaa, omin sanoin -kenttää eikä tuontia (403) |
 | claude.ai ja Claude-sovellus | `/mcp` | OAuth 2.1 (dynaaminen rekisteröinti + PKCE), ylävirtana GitHub, vain sallittu tunnus |
 | Claude Code | `/mcp` | `Authorization: Bearer <MCP_TOKEN>` |
 | Kuka tahansa | `/healthz`, kuvakkeet, `/asennus` (suppea) | Ei mitään. `/asennus` näyttää kirjautumatta vain pakollisten asetusten olemassaolon ja callback-osoitteet |
@@ -89,15 +90,21 @@ flowchart LR
   U -- ei evästettä --> L[Kirjautumissivu]
 ```
 
-**Tokenien voima on sama:** kumpikin bearer-token antaa lukea ja kirjoittaa koko
-lukupinoa (myös `/api/export`). Siksi pikakomentoa ei jaeta eteenpäin token
-mukana, ja tokenit ovat 64 heksamerkin satunnaisarvoja (`openssl rand -hex 32`).
+**Tokenien voima:** `CAPTURE_TOKEN` ja `MCP_TOKEN` antavat lukea ja kirjoittaa
+koko lukupinoa (myös `/api/export`). `ROUTINE_TOKEN` on rajattu: rutiini lukee
+vieraita sivuja, joten palvelin ei anna sen koskea omistajan kenttiin, vaikka
+sivulle piilotettu ohje yrittäisi. Pikakomentoa ei jaeta eteenpäin token
+mukana, tokenit ovat 64 heksamerkin satunnaisarvoja (`openssl rand -hex 32`),
+ja `/asennus` näyttää ne vain 15 minuutin sisällä kirjautumisesta.
 
 **Käyttäjien sisältö on epäluotettavaa.** Tallennettu HTML ja SVG tarjoillaan
 otsakkeella `Content-Security-Policy: sandbox` ilman `allow-same-origin`ia, ja
 katselusivun iframe on `sandbox`-määreellä: skriptit toimivat, mutta eivät pääse
 evästeeseen eivätkä `/ui/*`-reitteihin. Tutkimusten SVG siivotaan
-(`sanitizeSvg`), markdown escapetaan (`renderMarkdown`).
+(`sanitizeSvg`) ja näytetään kuvana (`<img>`), markdown escapetaan
+(`renderMarkdown`), ja tutkimussivuilla on CSP (skriptit vain omasta
+osoitteesta ja jsDelivristä eheystarkisteella, yhteydet vain omaan
+osoitteeseen).
 
 ## Tietomalli
 

@@ -37,9 +37,11 @@ curl -sS -X POST -H "$H" -H "$A" -H "Content-Type: application/json" \
   --data-binary @/tmp/paivitys.json "$B/api/update"              # enintään 100
 ```
 
-`/api/update` ottaa `{"updates":[{"id","summary","excerpt","description",
-"title","note","recall","imageUrl","mediaUrl","status","fetchNote","rating",
-"lists"}]}`. Jono suodatetaan viennistä paikallisesti: mukaan ne joilla
+`/api/update` ottaa rikastukselta `{"updates":[{"id","summary","excerpt",
+"description","title","note","imageUrl","mediaUrl","status","fetchNote",
+"lists","media"}]}`. Omistajan kentät `rating`, `progress` ja `recall` eivät
+kuulu rikastukselle: rutiinin token (`ROUTINE_TOKEN`) saa niistä vastaukseksi
+403. Jono suodatetaan viennistä paikallisesti: mukaan ne joilla
 `summary` on tyhjä ja `status` ei ole `ei-noudettavissa`.
 
 **`updated: 4` ei tarkoita että kaikki kentät menivät perille.** Pääte
@@ -207,18 +209,20 @@ litteraatti, sitten tiivistelmä litteraatista**, jotta video luetaan vain
 kerran:
 
 ```bash
-python3 skills/litteroi/koko.py youtube "<watch-url>" --tallenna <id>
-python3 skills/litteroi/koko.py audio   "<media_url>" --tallenna <id>
+python3 skills/litteroi/koko.py --id <id>
 bash skills/litteroi/litteroi.sh teksti <id> skills/litteroi/ohje.txt
 ```
 
 Jos `koko.py` palauttaa koodin 3 (RECITATION) tai 2, tee tiivistelmä
-suoraan lähteestä: `litteroi.sh youtube "<watch-url>"` tai
-`litteroi.sh audio "<media_url>"` samalla ohjeella.
+suoraan lähteestä: `bash skills/litteroi/litteroi.sh lahde <id> skills/litteroi/ohje.txt`.
+
+**Vain tunnus komentoriville**, ei koskaan osoitetta, `media_url`:ia eikä
+puhujia: skriptit hakevat lähteen itse (`skills/litteroi/SKILL.md`, Vaihe 2).
 
 YouTubella riittää osoite — videota ei ladata. Podcastilla tarvitaan
-`media_url` (jakson MP3 RSS-syötteestä); jos se puuttuu, tee vaihe 2b ensin
-ja jätä tallennus rauhaan jos syöte ei anna jaksoa.
+`media_url` (jakson MP3 RSS-syötteestä). Worker ei tallenna sitä: hae MP3
+vaiheen 2b tapaan ja kirjoita se `mediaUrl`-kenttään `/api/update`:lla ennen
+`koko.py`:tä; jätä tallennus rauhaan, jos syöte ei anna jaksoa.
 
 **Erän koko on kiintiön suoja: enintään 3 per ajo, niistä enintään 1
 Spotify-jakso.** Kahden tunnin podcast on noin 200 000 syötetokenia ja

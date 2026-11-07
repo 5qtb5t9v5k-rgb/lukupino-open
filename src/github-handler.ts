@@ -71,6 +71,13 @@ app.post("/authorize", async (c) => {
 		if (!state.oauthReqInfo || !state.oauthReqInfo.clientId) {
 			return c.text("Invalid request", 400);
 		}
+		// Lomakkeen tila tulee selaimelta, joten asiakas ja paluuosoite tarkistetaan
+		// rekisteristä ennen KV-kirjoitusta. Muuten kuka tahansa voisi kuluttaa
+		// KV:n päivittäistä kirjoituskiintiötä keksityillä pyynnöillä (auditointi 7.11.2026).
+		const client = await c.env.OAUTH_PROVIDER.lookupClient(state.oauthReqInfo.clientId);
+		if (!client || !client.redirectUris.includes(state.oauthReqInfo.redirectUri)) {
+			return c.text("Invalid request", 400);
+		}
 
 		// Add client to approved list
 		const approvedClientCookie = await addApprovedClient(

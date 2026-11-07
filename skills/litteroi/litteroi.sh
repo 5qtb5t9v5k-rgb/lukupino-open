@@ -1,8 +1,11 @@
 #!/bin/bash
 # Gemini-litterointi: YouTube-video osoitteesta, podcast MP3:sta.
 # Käyttö: litteroi.sh teksti  <kirjanmerkin-id> <ohje-tiedosto>
-#         litteroi.sh youtube <url> <ohje-tiedosto>
-#         litteroi.sh audio   <mp3-url> <ohje-tiedosto>
+#         litteroi.sh lahde   <kirjanmerkin-id> <ohje-tiedosto>   (varareitti: osoite haetaan lukupinosta)
+#         litteroi.sh youtube <url> <ohje-tiedosto>                (käsiajo)
+#         litteroi.sh audio   <mp3-url> <ohje-tiedosto>            (käsiajo)
+# Rutiinit käyttävät vain tunnuksia (teksti, lahde): vierasta osoitetta ei
+# kirjoiteta komentoriville, jossa komentotulkki voisi laajentaa sen merkkejä.
 # Ensisijainen on `teksti` (21.10.2026): tiivistelmä koko litteraatista, joka
 # on jo lukupinossa (koko.py --tallenna). Teksti on murto-osan hintainen,
 # eikä videota lueta toiseen kertaan. youtube/audio on varareitti, kun
@@ -20,11 +23,28 @@ AVAIMET=()
 [ -n "$LUKUPINO_GEMINI_KEY" ] && AVAIMET+=("$LUKUPINO_GEMINI_KEY")
 [ ${#AVAIMET[@]} -eq 0 ] && { echo "LUKUPINO_GEMINI_KEY puuttuu ympäristöstä" >&2; exit 1; }
 P=$(python3 -c "import json,sys;print(json.dumps(open(sys.argv[1]).read()))" "$PROMPT_FILE")
+if [ "$MODE" = teksti ] || [ "$MODE" = lahde ]; then
+  case "$SRC" in ""|*[!A-Za-z0-9_-]*) echo "virheellinen tunnus" >&2; exit 1;; esac
+fi
+if [ "$MODE" = lahde ]; then
+  # Osoite haetaan lukupinosta ja luetaan muuttujaan datana.
+  LAHDE=$(curl -sS -m 60 -H "Authorization: Bearer ${LUKUPINO_CAPTURE_TOKEN:?LUKUPINO_CAPTURE_TOKEN puuttuu}" -H "User-Agent: lukupino-agent/1.0" \
+    "${LUKUPINO_URL:?LUKUPINO_URL puuttuu}/api/bookmark/$SRC" \
+    | python3 -c '
+import json,re,sys
+b=json.load(sys.stdin).get("bookmark") or {}
+m=(b.get("media_url") or "").strip(); u=(b.get("url") or "").strip()
+if m.lower().startswith(("http://","https://")): print("audio "+m)
+elif re.match(r"https?://(www\.|m\.)?(youtube\.com|youtu\.be)/",u,re.I): print("youtube "+re.sub(r"[?&]is=[^&]*","",u))
+else: sys.exit(1)') || { echo "EI_LAHDETTA: ei media_url:ia eikä YouTube-osoitetta" >&2; exit 1; }
+  MODE=${LAHDE%% *}; SRC=${LAHDE#* }
+fi
+case "$MODE" in youtube|audio) case "$SRC" in http://*|https://*) ;; *) echo "lähteen pitää olla http(s)-osoite" >&2; exit 1;; esac;; esac
 if [ "$MODE" = teksti ]; then
   LT=$(curl -sS -m 60 -H "Authorization: Bearer ${LUKUPINO_CAPTURE_TOKEN:?LUKUPINO_CAPTURE_TOKEN puuttuu}" -H "User-Agent: lukupino-agent/1.0" \
     "${LUKUPINO_URL:?LUKUPINO_URL puuttuu (esim. https://lukupino.<tili>.workers.dev)}/api/transcript/$SRC" \
     | python3 -c "import json,sys;d=json.load(sys.stdin);t=(d.get('text') or '').strip();print(json.dumps(t)) if t else sys.exit(1)") \
-    || { echo "EI_LITTERAATTIA: aja ensin koko.py --tallenna tai käytä youtube/audio-tilaa" >&2; exit 1; }
+    || { echo "EI_LITTERAATTIA: aja ensin koko.py --id <id> tai käytä lahde-tilaa" >&2; exit 1; }
 fi
 [ "$MODE" = audio ] && { AUD=$(mktemp /tmp/aud.XXXX.mp3); curl -sSL -m 600 -A "Mozilla/5.0" "$SRC" -o "$AUD"; }
 
@@ -34,7 +54,8 @@ pyynto() {  # $1 = avain; kirjoittaa pyynnön tiedostoon /tmp/gem_req.json
     BODY="{\"contents\":[{\"parts\":[{\"text\":$P},{\"text\":\"LITTERAATTI:\"},{\"text\":$LT}]}],\"generationConfig\":{\"temperature\":0.3}}"
   elif [ "$MODE" = youtube ]; then
     # fps 0.01: kuvaa ei tarvita, laskutetaan käytännössä vain ääni (21.10.2026).
-    BODY="{\"contents\":[{\"parts\":[{\"text\":$P},{\"file_data\":{\"file_uri\":\"$SRC\"},\"video_metadata\":{\"fps\":0.01}}]}],\"generationConfig\":{\"temperature\":0.3}}"
+    SRCJ=$(python3 -c "import json,sys;print(json.dumps(sys.argv[1]))" "$SRC")
+    BODY="{\"contents\":[{\"parts\":[{\"text\":$P},{\"file_data\":{\"file_uri\":$SRCJ},\"video_metadata\":{\"fps\":0.01}}]}],\"generationConfig\":{\"temperature\":0.3}}"
   else
     # Files API -tiedosto kuuluu avaimen projektiin, joten se lähetetään
     # jokaisella avaimella erikseen.

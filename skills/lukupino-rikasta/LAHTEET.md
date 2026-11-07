@@ -70,8 +70,9 @@ Kun testaat reitin uudelleen ja tulos muuttuu, päivitä tähän päivä ja luvu
   jakso itse on julkinen MP3 syötteessä. Syöte löytyy ilmaisella haulla
   `https://itunes.apple.com/search?term=<ohjelma>&entity=podcast` (6/6
   ohjelmaa löytyi testissä 16.8.2026, myös suomalaiset). Worker käyttää
-  lisäksi gpodder.netiä ja poimii jakson kuvauksen, keston ja MP3-osoitteen
-  (`media_url`).
+  lisäksi gpodder.netiä ja poimii jakson kuvauksen ja keston; MP3:sta se
+  kirjoittaa vain "mp3 saatavilla" `fetchNote`en. MP3-osoitteen kirjoittaa
+  rutiini `mediaUrl`-kenttään (`SKILL.md` vaihe 2d).
 - **Kolme mitattua ansaa Spotify-jakson kuvauksessa** (13.9.2026):
   1. Spotify antaa og-tagit vain botilta näyttävälle user-agentille;
      Safarin tunnisteelle tulee tyhjä JS-sivu. Ohjelman nimi on

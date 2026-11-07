@@ -37,12 +37,18 @@ flowchart LR
    | Muuttuja | Arvo | Pakollinen |
    |---|---|---|
    | `LUKUPINO_URL` | asennuksesi osoite, esim. `https://lukupino.<tili>.workers.dev` (ei kauttaviivaa loppuun) | kyllä |
-   | `LUKUPINO_CAPTURE_TOKEN` | Workerin `CAPTURE_TOKEN` (näkyy kirjautuneena sivulla `/asennus`) | kyllä |
+   | `LUKUPINO_CAPTURE_TOKEN` | Workerin **`ROUTINE_TOKEN`** (näkyy kirjautuneena sivulla `/asennus`). Luo se ensin: `openssl rand -hex 32 \| npx wrangler secret put ROUTINE_TOKEN` | kyllä |
    | `LUKUPINO_GEMINI_KEY` | Gemini-avain projektista, johon on liitetty laskutus | litterointiin |
    | `LUKUPINO_GEMINI_FREE_KEY` | ilmaistason avain, **ei EU:ssa** | ei |
 
+   **Miksi `ROUTINE_TOKEN` eikä `CAPTURE_TOKEN`:** rutiini lukee vieraita
+   verkkosivuja, ja sivulle voi piilottaa ohjeita. Rajatulla tokenilla
+   palvelin ei suostu muuttamaan arvioitasi, lukutilaa eikä omin sanoin
+   -tekstejäsi, vaikka malli tottelisi niitä.
+
    Verkko: helpointa on *täysi pääsy*, koska rikastus noutaa mielivaltaisia
-   verkkosivuja. Rajatulla pääsyllä tarvitaan vähintään asennuksesi
+   verkkosivuja. Rajattu pääsy on turvallisempi: se rajaa myös sen, minne
+   vieraan sivun ohjaama malli voisi lähettää dataa. Rajatulla pääsyllä tarvitaan vähintään asennuksesi
    `*.workers.dev`-osoite, `generativelanguage.googleapis.com`,
    `itunes.apple.com`, `gpodder.net`, `cdn.syndication.twimg.com`,
    `www.reddit.com` ja `substack.com`, eikä rikastus silloin saa kaikkia

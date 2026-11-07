@@ -37,7 +37,7 @@ iPhonella → *Lisää pikakomento*. Tuonnissa kysytään kaksi asiaa:
 | Kysymys | Mistä | Esimerkki |
 |---|---|---|
 | Lukupinon osoite | `/asennus` → *Osoite* | `https://lukupino.<tili>.workers.dev` (ei kauttaviivaa loppuun) |
-| Token | `/asennus` → *Token (CAPTURE_TOKEN)* → *Näytä* → *Kopioi* | 64 merkkiä |
+| Token | `/asennus` → *Token (CAPTURE_TOKEN)* → *Näytä* → *Kopioi* (näkyy 15 min kirjautumisen jälkeen) | 64 merkkiä |
 
 Siirry sitten kohtaan [3. Testaa](#3-testaa-kolmella-jaolla).
 

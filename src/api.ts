@@ -13,7 +13,25 @@ import { MAX_FILE_BYTES, deleteFile, disposition, getFile, guessType, isImage, i
 
 type Bindings = Env;
 
-export const api = new Hono<{ Bindings: Bindings }>();
+/**
+ * Kaksi bearer-tokenia, kaksi roolia (auditointi 7.11.2026):
+ * - CAPTURE_TOKEN = omistaja (iPhone-pikakomento, migraatio): kaikki /api/*.
+ * - ROUTINE_TOKEN = rutiini (ajastetut Claude-rutiinit, jotka lukevat vieraita
+ *   sivuja): lukea ja rikastaa saa, mutta omistajan kenttiin (arvio, lukutila,
+ *   omin sanoin) ja tuontiin palvelin ei suostu. Näin sivulle piilotettu ohje ei
+ *   voi muuttaa niitä, vaikka malli tottelisi sitä.
+ */
+export type Rooli = "omistaja" | "rutiini";
+export function tokenRooli(env: Env, tok: string | null): Rooli | null {
+	if (!tok) return null;
+	if (env.CAPTURE_TOKEN && timingSafeEqual(tok, env.CAPTURE_TOKEN)) return "omistaja";
+	if (env.ROUTINE_TOKEN && timingSafeEqual(tok, env.ROUTINE_TOKEN)) return "rutiini";
+	return null;
+}
+/** Kentät, joihin vain omistaja kirjoittaa (AGENTS.md, invariantti 5). */
+const OMISTAJAN_KENTAT = ["rating", "progress", "recall"] as const;
+
+export const api = new Hono<{ Bindings: Bindings; Variables: { rooli: Rooli } }>();
 
 function bearer(req: Request): string | null {
 	const h = req.headers.get("authorization") ?? "";
@@ -33,10 +51,14 @@ function timingSafeEqual(a: string, b: string): boolean {
 // kiinteä "✓ tallennettu" -ilmoitus näyttäisi onnistumista myös silloin kun
 // pyyntö epäonnistui. Kun ilmoitus lukee tämän kentän, se ei voi valehdella.
 api.use("/api/*", async (c, next) => {
-	const tok = bearer(c.req.raw);
-	if (!tok || !c.env.CAPTURE_TOKEN || !timingSafeEqual(tok, c.env.CAPTURE_TOKEN)) {
+	const rooli = tokenRooli(c.env, bearer(c.req.raw));
+	if (!rooli) {
 		return c.json({ error: "unauthorized", message: "✗ Tunnistautuminen epäonnistui — tarkista Authorization-otsikko" }, 401);
 	}
+	if (rooli === "rutiini" && new URL(c.req.url).pathname === "/api/import") {
+		return c.json({ error: "forbidden", message: "✗ Rutiinin token ei saa tuoda tallennuksia" }, 403);
+	}
+	c.set("rooli", rooli);
 	await next();
 });
 
@@ -128,7 +150,7 @@ export function siivoaOsoite(raw: string): string | null {
 	return null;
 }
 
-const addHandler = async (c: Context<{ Bindings: Bindings }>) => {
+const addHandler = async (c: Context<{ Bindings: Bindings; Variables: { rooli: Rooli } }>) => {
 	const db = new Db(c.env.DB);
 	const q = c.req.query();
 	// `url` luetaan raakana osoitteesta eikä jäsennetyistä parametreista, koska
@@ -176,6 +198,9 @@ const addHandler = async (c: Context<{ Bindings: Bindings }>) => {
 		source: (q.source as Source) ?? body.source,
 		rating: q.rating !== undefined ? (wantsResearch(q.rating) ? 4 : parseRating(q.rating) ?? undefined) : body.rating,
 	};
+	if (c.get("rooli") === "rutiini" && body.rating !== undefined && body.rating !== null) {
+		return c.json({ error: "forbidden", message: "✗ Rutiinin token ei saa antaa arviota" }, 403);
+	}
 	const text = body.text?.trim() || null;
 	const [bm, created] = await db.create({
 		url,
@@ -320,7 +345,11 @@ export async function receiveUpload(
 }
 
 api.post("/api/upload", async (c) => {
-	const r = await receiveUpload(c.env, c.req.url, await c.req.formData(), "app");
+	const form = await c.req.formData();
+	if (c.get("rooli") === "rutiini" && form.get("rating")) {
+		return c.json({ error: "forbidden", message: "✗ Rutiinin token ei saa antaa arviota" }, 403);
+	}
+	const r = await receiveUpload(c.env, c.req.url, form, "app");
 	return c.json(r.body, r.status as 200 | 201 | 400 | 413);
 });
 
@@ -335,8 +364,7 @@ api.get("/file/:key{.+}", async (c) => {
 	const ok =
 		(await readSession(c.req.raw, c.env.COOKIE_ENCRYPTION_KEY)) !== null ||
 		(() => {
-			const t = bearer(c.req.raw);
-			return !!t && !!c.env.CAPTURE_TOKEN && timingSafeEqual(t, c.env.CAPTURE_TOKEN);
+			return tokenRooli(c.env, bearer(c.req.raw)) !== null;
 		})();
 	if (!ok) return c.json({ error: "unauthorized" }, 401);
 	const f = await getFile(c.env, c.req.param("key"));
@@ -346,6 +374,7 @@ api.get("/file/:key{.+}", async (c) => {
 			"content-type": f.type,
 			"content-disposition": disposition(f.name, f.type),
 			"cache-control": "private, max-age=86400",
+			"x-content-type-options": "nosniff",
 			...isolationHeaders(f.type),
 		},
 	});
@@ -436,6 +465,12 @@ api.post("/api/update", async (c) => {
 		updates?: Array<{ id: string; summary?: string; excerpt?: string; title?: string; description?: string; note?: string | null; recall?: string | null; imageUrl?: string | null; mediaUrl?: string | null; status?: Status; fetchNote?: string | null; rating?: number; lists?: string[]; media?: string; progress?: string | null }>;
 	};
 	const ups = (body.updates ?? []).slice(0, 100);
+	if (c.get("rooli") === "rutiini") {
+		const kielletyt = [...new Set(ups.flatMap((u) => OMISTAJAN_KENTAT.filter((k) => (u as Record<string, unknown>)[k] !== undefined)))];
+		if (kielletyt.length) {
+			return c.json({ error: "forbidden", fields: kielletyt, message: `✗ Rutiinin token ei saa kirjoittaa omistajan kenttiä: ${kielletyt.join(", ")}` }, 403);
+		}
+	}
 	// Listat luodaan ensin, jotta niihin voi liittää samassa erässä.
 	for (const name of new Set(ups.flatMap((u) => u.lists ?? []))) await db.ensureList(name);
 	let updated = 0;
@@ -632,3 +667,13 @@ api.post("/api/quiz/:id/feedback", async (c) => {
 
 api.get("/api/stats", async (c) => c.json(await new Db(c.env.DB).counts()));
 api.get("/api/lists", async (c) => c.json({ lists: await new Db(c.env.DB).lists() }));
+
+/**
+ * GET /api/bookmark/:id — yksi tallennus. Litterointiskriptit hakevat tällä
+ * osoitteen ja media_url:n itse, jotta rutiinin ei tarvitse kirjoittaa vieraita
+ * osoitteita komentoriville (auditointi 7.11.2026).
+ */
+api.get("/api/bookmark/:id", async (c) => {
+	const b = await new Db(c.env.DB).get(c.req.param("id"));
+	return b ? c.json({ bookmark: b }) : c.json({ error: "not found", message: "✗ Tallennusta ei löytynyt" }, 404);
+});

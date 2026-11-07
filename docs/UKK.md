@@ -84,8 +84,14 @@ Sivulta `https://<osoitteesi>/asennus`: vihreä on kunnossa, punainen puuttuu,
 ja puuttuvan kohdalla on korjauskomento.
 
 **Mistä löydän tokenit myöhemmin?**
-Sivulta `/asennus` kirjautuneena (*Näytä* → *Kopioi*). Cloudflaresta niitä ei
-voi lukea jälkikäteen.
+Sivulta `/asennus` kirjautuneena (*Näytä* → *Kopioi*). Ne näkyvät vain 15
+minuuttia kirjautumisen jälkeen; muuten paina *Kirjaudu uudelleen nähdäksesi
+tokenit*. Cloudflaresta niitä ei voi lukea jälkikäteen.
+
+**Miksi rutiinilla on oma token?**
+Rutiini lukee vieraita verkkosivuja, ja sivulle voi piilottaa ohjeita.
+`ROUTINE_TOKEN`illa palvelin ei suostu muuttamaan arvioitasi, lukutilaa eikä
+omin sanoin -tekstejäsi, vaikka malli tottelisi. → [SECURITY.md](../SECURITY.md#tokenien-oikeudet)
 
 **Voinko käyttää omaa verkkotunnusta?**
 Voit lisätä Workerille oman verkkotunnuksen Cloudflaressa. Lisää silloin uudet
@@ -151,8 +157,9 @@ Vain sinä. Teknisesti Cloudflare (palvelin), Anthropic (kun Claude käsittelee)
 ja Google (litteroitava ääni). → [ALOITA-TASTA](ALOITA-TASTA.md#kuka-näkee-mitä)
 
 **Onko turvallista, että koodi on julkinen?**
-On: koodissa ei ole salaisuuksia eikä dataa. Ne ovat Cloudflaressa.
-→ [SECURITY.md](../SECURITY.md)
+On: koodissa ei ole salaisuuksia eikä dataa. Ne ovat Cloudflaressa. Koodi on
+tarkastettu Cloudflaren auditointiskillillä, ja löydökset on korjattu.
+→ [SECURITY.md](../SECURITY.md#auditointi)
 
 **Mitä teen, jos token on vuotanut?**
 Kierrätä se ja päivitä pikakomento ja rutiinit. → [SECURITY.md](../SECURITY.md#tokenien-oikeudet)

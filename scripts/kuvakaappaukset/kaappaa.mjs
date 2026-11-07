@@ -105,7 +105,7 @@ async function main() {
 		// 4. Lukunäkymä korostuksineen.
 		lue: { ctx: "puhelin", polku: `/lue/${id("aho")}`, odota: "#tx .p .hl" },
 		// 5. Tutkimus ja sen kuva.
-		tutkimus: { ctx: "puhelin", polku: `/tutkimus/${id("ebbinghaus")}`, odota: "#tx figure.kuva svg", korkeus: (page) => alareuna(page, "#tx figure.kuva", 20) },
+		tutkimus: { ctx: "puhelin", polku: `/tutkimus/${id("ebbinghaus")}`, odota: "#tx figure.kuva img", korkeus: (page) => alareuna(page, "#tx figure.kuva", 20) },
 		// 7. Viikko mediassa: demon kohdeviikko.
 		// Kolme ruutua vierekkäin: jokainen on oma puhelinnäkymänsä (390 × 844).
 		viikko: {

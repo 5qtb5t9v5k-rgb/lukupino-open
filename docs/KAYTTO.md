@@ -317,11 +317,15 @@ vain http(s)), ja tekstiä voi korostaa poiminnoiksi kuten litteraatissa.
 lohkoina ```` ```svg Kuvateksti ```` ja ```` ```mermaid Kuvateksti ````.
 SVG siivotaan palvelimella (`sanitizeSvg`: ei skriptejä, `style`-, `image`-,
 `use`- eikä `foreignObject`-elementtejä, ei `on*`-attribuutteja eikä ulkoisia
-linkkejä, enintään 80 000 merkkiä) ja piirretään sellaisenaan; värit tulevat
-`--k-*`-muuttujista, joten sama kuva toimii vaaleassa, tummassa ja PDF:ssä.
-Yli 600 leveä SVG vierii puhelimessa sivuttain. Mermaid 10.9.1 ladataan
-jsDelivristä vain sivuille, joilla on kaavio (`securityLevel: strict`), ja
-sen värit luetaan samoista muuttujista. Ohjeet kirjoittajalle:
+linkkejä, enintään 80 000 merkkiä) ja näytetään **kuvana**
+(`<img src="data:image/svg+xml…">`), joten se ei voi ajaa skriptiä
+eikä ladata mitään, vaikka siivous päästäisi jotain läpi. `--k-*`-värit
+korvataan paletin arvoilla: vaalea ja tumma versio `<picture>`-elementissä,
+PDF:ssä vain vaalea. Yli 600 leveä SVG vierii puhelimessa sivuttain. Mermaid
+10.9.5 ladataan jsDelivristä eheystarkisteella (SRI) vain sivuille, joilla on
+kaavio (`securityLevel: strict`), ja sen värit luetaan samoista muuttujista.
+Tutkimussivuilla on Content-Security-Policy: skriptit vain omasta osoitteesta
+ja jsDelivristä, yhteydet vain omaan osoitteeseen. Ohjeet kirjoittajalle:
 `skills/lukupino-tutki/SKILL.md`, vaihe 3b.
 
 Tila on kirjanmerkillä (`research_status`: `pyydetty` → `valmis` tai

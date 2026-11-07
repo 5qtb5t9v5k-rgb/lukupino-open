@@ -46,7 +46,7 @@ Lähde: `worker-configuration.d.ts`, `src/asennus.ts` ja `env.*`-viittaukset `sr
 
 | Nimi | Pakollinen | Käyttö | Luonti |
 |---|---|---|---|
-| `CAPTURE_TOKEN` | kyllä | Bearer `/api/*`-reiteille (pikakomento, rutiinit) | `openssl rand -hex 32` |
+| `CAPTURE_TOKEN` | kyllä | Omistajan bearer `/api/*`-reiteille (pikakomento) | `openssl rand -hex 32` |
 | `MCP_TOKEN` | kyllä | Claude Coden bearer `/mcp`:hen | `openssl rand -hex 32` |
 | `COOKIE_ENCRYPTION_KEY` | kyllä | Istuntoevästeiden allekirjoitus | `openssl rand -hex 32` |
 | `ALLOWED_GITHUB_LOGIN` | kyllä | Ainoa sallittu GitHub-tunnus (kirjainkoko ratkaisee) | oma tunnus |
@@ -56,6 +56,7 @@ Lähde: `worker-configuration.d.ts`, `src/asennus.ts` ja `env.*`-viittaukset `sr
 | `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET` | ei | Spotify-varareitti | sama |
 | `PURKU_ROUTINE` | ei | Aamurutiinin `trig_…`-tunnus | [routines/README.md](../routines/README.md) |
 | `PURKU_TOKEN` | ei | Rutiinin API-laukaisimen token | sama |
+| `ROUTINE_TOKEN` | tasolle 3 | Rutiinien rajattu bearer: ei arvioita, lukutilaa, omin sanoin -kenttää eikä tuontia | `openssl rand -hex 32` |
 
 ## Rutiinien ympäristömuuttujat (claude.ai)
 
@@ -66,7 +67,7 @@ ympäristössä.
 | Nimi | Pakollinen | Käyttö |
 |---|---|---|
 | `LUKUPINO_URL` | kyllä | Asennuksen osoite ilman loppukauttaviivaa |
-| `LUKUPINO_CAPTURE_TOKEN` | kyllä | Sama arvo kuin Workerin `CAPTURE_TOKEN` |
+| `LUKUPINO_CAPTURE_TOKEN` | kyllä | Workerin `ROUTINE_TOKEN` (suositus) tai `CAPTURE_TOKEN`; `/asennus` näyttää oikean |
 | `LUKUPINO_GEMINI_KEY` | litterointiin | Gemini-avain projektista, johon on liitetty laskutus |
 | `LUKUPINO_GEMINI_FREE_KEY` | ei | Ilmaistason avain, kokeillaan ensin. **Ei EU:ssa, Sveitsissä eikä Britanniassa** (alla) |
 

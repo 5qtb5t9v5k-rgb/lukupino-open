@@ -1,9 +1,15 @@
 #!/usr/bin/env python3
 """Koko litteraatti Geminillä: sanatarkka teksti, aikaleimat ja puhujat.
 
-Käyttö:
+Käyttö (rutiinit: aina --id, ei osoitteita komentoriville):
+  python3 skills/litteroi/koko.py --id <id> [--puhujat-tiedosto /tmp/puhujat.txt]
   python3 skills/litteroi/koko.py youtube <url>      [--puhujat "A (juontaja), B (vieras)"] [--tallenna <id>]
   python3 skills/litteroi/koko.py audio   <mp3-url>  [--puhujat ...] [--tallenna <id>]
+
+`--id` hakee tallennuksen lukupinosta (GET /api/bookmark/<id>): jos sillä on
+media_url, litteroidaan se äänenä, muuten YouTube-osoite videona; tulos
+tallennetaan samalle tunnukselle. Näin vierasta osoitetta ei koskaan kirjoiteta
+komentoriville, jossa komentotulkki voisi laajentaa siinä olevia merkkejä.
 
 Tulostaa litteraatin (rivi per kappale, `[0:04:22] Puhuja: teksti`).
 `--tallenna <id>` lähettää sen lukupinoon (POST /api/transcript).
@@ -243,16 +249,47 @@ def youtube(url, ohje):
     return osat, None
 
 
+TUNNUS = re.compile(r"[A-Za-z0-9_-]{4,40}")
+YOUTUBE = re.compile(r"https?://(www\.|m\.)?(youtube\.com|youtu\.be)/", re.I)
+
+
+def hae_tallennus(kid):
+    req = urllib.request.Request(f"{LUKUPINO}/api/bookmark/{kid}",
+                                 headers={"Authorization": "Bearer " + os.environ["LUKUPINO_CAPTURE_TOKEN"],
+                                          "User-Agent": "lukupino-agent/1.0"})
+    return json.loads(urllib.request.urlopen(req, timeout=60).read().decode()).get("bookmark") or {}
+
+
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("tila", choices=["youtube", "audio"])
-    ap.add_argument("lahde")
+    ap.add_argument("tila", nargs="?", choices=["youtube", "audio"])
+    ap.add_argument("lahde", nargs="?")
+    ap.add_argument("--id", dest="kid", metavar="ID", help="hae lähde lukupinosta ja tallenna samalle tunnukselle")
     ap.add_argument("--puhujat", default="")
+    ap.add_argument("--puhujat-tiedosto", metavar="POLKU", help="puhujat tiedostosta (rutiinit: kirjoita tiedosto, älä komentoriville)")
     ap.add_argument("--tallenna", metavar="ID")
     a = ap.parse_args()
+    if not a.kid and not (a.tila and a.lahde):
+        ap.error("anna --id <tunnus> tai tila ja lähde")
     # Tarkistus ennen kuin Geminin kiintiötä kuluu: tallennus tarvitsee osoitteen ja tokenin.
-    if a.tallenna and not (LUKUPINO and os.environ.get("LUKUPINO_CAPTURE_TOKEN")):
+    if (a.tallenna or a.kid) and not (LUKUPINO and os.environ.get("LUKUPINO_CAPTURE_TOKEN")):
         sys.exit("LUKUPINO_URL tai LUKUPINO_CAPTURE_TOKEN puuttuu ympäristöstä (ks. docs/INFRA.md)")
+    if a.kid:
+        if not TUNNUS.fullmatch(a.kid):
+            sys.exit("virheellinen tunnus")
+        b = hae_tallennus(a.kid)
+        media, url = (b.get("media_url") or "").strip(), (b.get("url") or "").strip()
+        if media.lower().startswith(("http://", "https://")):
+            a.tila, a.lahde = "audio", media
+        elif YOUTUBE.match(url):
+            a.tila, a.lahde = "youtube", url
+        else:
+            sys.exit("EI_LAHDETTA: tallennuksella ei ole media_url:ia eikä YouTube-osoitetta (podcastille: hae MP3 syötteestä ja kirjoita se mediaUrl-kenttään /api/updatella)")
+        a.tallenna = a.tallenna or a.kid
+    if not a.lahde.lower().startswith(("http://", "https://")):
+        sys.exit("lähteen pitää olla http(s)-osoite")
+    if a.puhujat_tiedosto:
+        a.puhujat = open(a.puhujat_tiedosto, encoding="utf-8").read().strip()[:500]
     puhujat = (f"Puhujat: {a.puhujat}. Jos et tiedä kuka puhuu, käytä `?`." if a.puhujat
                else "Tunnista puhujat nimeltä, jos nimet käyvät ilmi; muuten Puhuja 1, Puhuja 2.")
     lahde = a.lahde

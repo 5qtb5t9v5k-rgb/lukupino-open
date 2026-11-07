@@ -22,6 +22,14 @@ export function clearSessionCookie(): string {
 	return `${COOKIE}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`;
 }
 
+/** Istunnon ikä sekunteina (kirjautumisesta), tai null jos istuntoa ei ole. */
+export async function sessionAge(req: Request, key: string): Promise<number | null> {
+	if (!(await readSession(req, key))) return null;
+	const m = new RegExp(`(?:^|;\\s*)${COOKIE}=([^;]+)`).exec(req.headers.get("cookie") ?? "");
+	const exp = parseInt(m?.[1].split(".")[1] ?? "", 10);
+	return exp ? Math.max(0, TTL_S - (exp - Math.floor(Date.now() / 1000))) : null;
+}
+
 /** Palauttaa loginin jos cookie on ehjä ja voimassa, muuten null. */
 export async function readSession(req: Request, key: string): Promise<string | null> {
 	// Ilman avainta mikään eväste ei ole voimassa (ei edes tyhjällä avaimella allekirjoitettu).

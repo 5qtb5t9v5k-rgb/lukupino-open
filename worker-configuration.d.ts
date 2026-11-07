@@ -25,6 +25,9 @@ declare namespace Cloudflare {
 		// (salaisuuksia, ks. routines/README.md). Ilman näitä nappia ei näytetä.
 		PURKU_ROUTINE?: string;
 		PURKU_TOKEN?: string;
+		// Rutiinien rajattu token: ei omistajan kenttiä (arvio, lukutila, recall)
+		// eikä tuontia. Ks. src/api.ts tokenRooli ja routines/README.md.
+		ROUTINE_TOKEN?: string;
 	}
 }
 interface Env extends Cloudflare.Env {}

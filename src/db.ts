@@ -161,6 +161,8 @@ export function clip(s: string | null | undefined, max: number): string | null {
 
 export function normalizeUrl(raw: string): string {
 	const u = new URL(raw.trim());
+	// Vain http(s): muut skeemat (javascript:, data: …) päätyisivät linkkeinä sivuille (auditointi 7.11.2026).
+	if (u.protocol !== "https:" && u.protocol !== "http:") throw new Error(`vain http(s)-osoitteet kelpaavat: ${u.protocol}`);
 	u.hash = "";
 	// Seurantaparametrit pois, jotta sama artikkeli ei tallennu kahdesti.
 	for (const k of [...u.searchParams.keys()]) {
