@@ -13,7 +13,7 @@ kiinnostavan (jutut, videot, podcastit, kirjan sivut, PDF:t), ja josta tekoäly
 tekee sinulle yön aikana tiivistelmät, litteraatit ja tutkimukset. Sunnuntaisin
 saat pistokokeen siitä, mitä viikolla luit.
 
-<p align="center"><img src="kuvat/etusivu.png" width="280" alt="Etusivu: Hylly"> <img src="kuvat/litteraatti.png" width="280" alt="Litteraatti ja soitin"></p>
+<p align="center"><img src="kuvat/infograafi.jpg" width="720" alt="Infograafi: mikä Lukupino on, miten se toimii, miltä se näyttää ja mitä se mahdollistaa"></p>
 
 Se pyörii **sinun omalla Cloudflare-tililläsi**, joten data on sinun, eikä
 kukaan muu (ei edes Lukupinon tekijä) näe sitä.

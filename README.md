@@ -38,6 +38,11 @@ Aikaa menee noin tunti [oletus]. **En tiedä mitä git tai Cloudflare on?** →
 vastaa [usein kysyttyjen](docs/UKK.md) ja muiden dokumenttien perusteella ja
 jatkaa sitten siitä, mihin jäitte. Ja kun se on epävarma, se kysyy sinulta.
 
+<details>
+<summary><b>Lukupino yhdellä kuvalla</b> (infograafi)</summary>
+<p align="center"><a href="docs/kuvat/infograafi.jpg"><img src="docs/kuvat/infograafi.jpg" width="720" alt="Infograafi: mikä Lukupino on, miten se toimii, miltä se näyttää ja mitä se mahdollistaa"></a></p>
+</details>
+
 ## Mitä se tekee
 
 | | |

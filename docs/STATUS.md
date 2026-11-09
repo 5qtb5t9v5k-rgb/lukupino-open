@@ -61,3 +61,4 @@ Merkinnät: **[mitattu pvm]** = tarkistettu itse tuona päivänä (komento, kyse
 | [skills/](../skills/) | Clauden skillit; lähteiden säännöt `skills/lukupino-rikasta/LAHTEET.md` |
 | [migrations/](../migrations/) | D1-skeeman muutokset 0001–0014 |
 | [scripts/kuvakaappaukset/](../scripts/kuvakaappaukset/) | Demodata ja kuvakaappausten toisto |
+| [scripts/infograafi/](../scripts/infograafi/) | Infograafin lähde (HTML) ja sen piirto kuvaksi |
